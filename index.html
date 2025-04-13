@@ -72,7 +72,7 @@
             </div>
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="doc-qa-lead" onchange="verifyCheckbox(this, 'documentation', 'qaLead')">
+                    <input type="checkbox" id="documentation-qa-lead" onchange="verifyCheckbox(this, 'documentation', 'qaLead')">
                     Verified by QA Lead
                     <span class="verification-badge">Pending</span>
                 </label>
@@ -80,7 +80,7 @@
             </div>
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="doc-pm" onchange="verifyCheckbox(this, 'documentation', 'projectManager')">
+                    <input type="checkbox" id="documentation-project-manager" onchange="verifyCheckbox(this, 'documentation', 'projectManager')">
                     Verified by Project Manager
                     <span class="verification-badge">Pending</span>
                 </label>
@@ -97,19 +97,19 @@
             </div>
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="plan-qa-lead" onchange="verifyCheckbox(this, 'testPlan', 'qaLead')">
+                    <input type="checkbox" id="test-plan-qa-lead" onchange="verifyCheckbox(this, 'test-plan', 'qaLead')">
                     Verified by QA Lead
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="testPlan-qa-lead-message" class="message"></div>
+                <div id="test-plan-qa-lead-message" class="message"></div>
             </div>
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="plan-pm" onchange="verifyCheckbox(this, 'testPlan', 'projectManager')">
+                    <input type="checkbox" id="test-plan-project-manager" onchange="verifyCheckbox(this, 'test-plan', 'projectManager')">
                     Verified by Project Manager
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="testPlan-project-manager-message" class="message"></div>
+                <div id="test-plan-project-manager-message" class="message"></div>
             </div>
         </div>
 
@@ -122,19 +122,19 @@
             </div>
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="cases-qa-lead" onchange="verifyCheckbox(this, 'testCases', 'qaLead')">
+                    <input type="checkbox" id="test-cases-qa-lead" onchange="verifyCheckbox(this, 'test-cases', 'qaLead')">
                     Verified by QA Lead
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="testCases-qa-lead-message" class="message"></div>
+                <div id="test-cases-qa-lead-message" class="message"></div>
             </div>
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="cases-pm" onchange="verifyCheckbox(this, 'testCases', 'projectManager')">
+                    <input type="checkbox" id="test-cases-project-manager" onchange="verifyCheckbox(this, 'test-cases', 'projectManager')">
                     Verified by Project Manager
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="testCases-project-manager-message" class="message"></div>
+                <div id="test-cases-project-manager-message" class="message"></div>
             </div>
         </div>
     </div>
@@ -168,10 +168,10 @@
         const checkboxStates = {
             'documentation-qaLead': false,
             'documentation-projectManager': false,
-            'testPlan-qaLead': false,
-            'testPlan-projectManager': false,
-            'testCases-qaLead': false,
-            'testCases-projectManager': false
+            'test-plan-qaLead': false,
+            'test-plan-projectManager': false,
+            'test-cases-qaLead': false,
+            'test-cases-projectManager': false
         };
 
         // Make functions globally accessible
@@ -268,8 +268,8 @@
             document.getElementById('completion-percent').textContent = `${percentComplete}%`;
 
             const docVerified = (checkboxStates['documentation-qaLead'] ? 1 : 0) + (checkboxStates['documentation-projectManager'] ? 1 : 0);
-            const planVerified = (checkboxStates['testPlan-qaLead'] ? 1 : 0) + (checkboxStates['testPlan-projectManager'] ? 1 : 0);
-            const casesVerified = (checkboxStates['testCases-qaLead'] ? 1 : 0) + (checkboxStates['testCases-projectManager'] ? 1 : 0);
+            const planVerified = (checkboxStates['test-plan-qaLead'] ? 1 : 0) + (checkboxStates['test-plan-projectManager'] ? 1 : 0);
+            const casesVerified = (checkboxStates['test-cases-qaLead'] ? 1 : 0) + (checkboxStates['test-cases-projectManager'] ? 1 : 0);
 
             document.getElementById('documents-count').textContent = `${docVerified}/2`;
             document.getElementById('plans-count').textContent = `${planVerified}/2`;
@@ -304,8 +304,9 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('DOMContentLoaded, starting loadVerificationStatuses');
             await loadVerificationStatuses();
-            console.log('Verification statuses loaded, updating progress');
+            console.log('Verification statuses loaded, updating progress and UI');
             updateProgress();
+            syncUIWithStates(); // Force UI sync after loading
 
             const statusCards = document.querySelectorAll('.status-card');
             statusCards.forEach(card => {
@@ -319,7 +320,7 @@
 
         async function loadVerificationStatuses() {
             console.log('Loading verification statuses from Firestore');
-            const tabs = ['documentation', 'testPlan', 'testCases'];
+            const tabs = ['documentation', 'test-plan', 'test-cases'];
             for (const tabId of tabs) {
                 try {
                     const docRef = doc(db, 'verifications', tabId);
@@ -328,7 +329,7 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         const qaLeadCheckbox = document.getElementById(`${tabId}-qa-lead`);
-                        const pmCheckbox = document.getElementById(`${tabId}-pm`);
+                        const pmCheckbox = document.getElementById(`${tabId}-project-manager`);
                         if (qaLeadCheckbox && pmCheckbox) {
                             const qaLeadBadge = qaLeadCheckbox.parentElement.querySelector('.verification-badge');
                             const pmBadge = pmCheckbox.parentElement.querySelector('.verification-badge');
@@ -337,7 +338,7 @@
 
                             if (data.qaLead) {
                                 checkboxStates[`${tabId}-qaLead`] = data.qaLead === 'Verified';
-                                qaLeadCheckbox.checked = data.qaLead === 'Verified';
+                                if (qaLeadCheckbox) qaLeadCheckbox.checked = data.qaLead === 'Verified';
                                 if (qaLeadBadge) {
                                     qaLeadBadge.textContent = data.qaLead;
                                     qaLeadBadge.style.backgroundColor = data.qaLead === 'Verified' ? '#4cc9f0' : 'var(--gray)';
@@ -352,7 +353,7 @@
                             }
                             if (data.projectManager) {
                                 checkboxStates[`${tabId}-projectManager`] = data.projectManager === 'Verified';
-                                pmCheckbox.checked = data.projectManager === 'Verified';
+                                if (pmCheckbox) pmCheckbox.checked = data.projectManager === 'Verified';
                                 if (pmBadge) {
                                     pmBadge.textContent = data.projectManager;
                                     pmBadge.style.backgroundColor = data.projectManager === 'Verified' ? '#4cc9f0' : 'var(--gray)';
@@ -375,6 +376,28 @@
                     }
                 } catch (error) {
                     console.error('Error loading verification statuses for', tabId, ':', error);
+                }
+            }
+        }
+
+        function syncUIWithStates() {
+            console.log('Syncing UI with checkboxStates:', checkboxStates);
+            for (const [id, state] of Object.entries(checkboxStates)) {
+                const [tabId, role] = id.split('-');
+                const checkbox = document.getElementById(`${tabId}-${role === 'qaLead' ? 'qa-lead' : 'project-manager'}`);
+                const badge = checkbox ? checkbox.parentElement.querySelector('.verification-badge') : null;
+                const messageDiv = document.getElementById(`${tabId}-${role === 'qaLead' ? 'qa-lead' : 'project-manager'}-message`);
+                if (checkbox) checkbox.checked = state;
+                if (badge) {
+                    badge.textContent = state ? 'Verified' : 'Pending';
+                    badge.style.backgroundColor = state ? '#4cc9f0' : 'var(--gray)';
+                }
+                if (messageDiv) {
+                    messageDiv.style.display = state ? 'block' : 'none';
+                    if (state) {
+                        messageDiv.textContent = 'Verification successful!';
+                        messageDiv.className = 'message success';
+                    }
                 }
             }
         }
