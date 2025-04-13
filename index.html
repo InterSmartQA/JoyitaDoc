@@ -152,12 +152,12 @@
         // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCT6bunVIe9tyMWFo0dXNURYf_q4_ZmJxM",
-  authDomain: "joyitaqadocumentation.firebaseapp.com",
-  projectId: "joyitaqadocumentation",
-  storageBucket: "joyitaqadocumentation.firebasestorage.app",
-  messagingSenderId: "71921927945",
-  appId: "1:71921927945:web:fc2fce50e912b1133f75d8",
-  measurementId: "G-L72ELXD4FL"
+            authDomain: "joyitaqadocumentation.firebaseapp.com",
+            projectId: "joyitaqadocumentation",
+            storageBucket: "joyitaqadocumentation.firebasestorage.app",
+            messagingSenderId: "71921927945",
+            appId: "1:71921927945:web:fc2fce50e912b1133f75d8",
+            measurementId: "G-L72ELXD4FL"
         };
 
         // Initialize Firebase
@@ -302,7 +302,10 @@
 
         // Initialize Firestore structure and load statuses on page load
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('DOMContentLoaded, starting loadVerificationStatuses');
             await loadVerificationStatuses();
+            console.log('Verification statuses loaded, updating progress');
+            updateProgress();
 
             const statusCards = document.querySelectorAll('.status-card');
             statusCards.forEach(card => {
@@ -312,47 +315,69 @@
 
             const fab = document.querySelector('.fab');
             fab.addEventListener('click', showSummary);
+        });
 
-            async function loadVerificationStatuses() {
-                const tabs = ['documentation', 'testPlan', 'testCases'];
-                for (const tabId of tabs) {
-                    try {
-                        const docRef = doc(db, 'verifications', tabId);
-                        const docSnap = await getDoc(docRef);
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            const qaLeadCheckbox = document.getElementById(`${tabId}-qa-lead`);
-                            const pmCheckbox = document.getElementById(`${tabId}-pm`);
-                            if (qaLeadCheckbox && pmCheckbox) {
-                                const qaLeadBadge = qaLeadCheckbox.parentElement.querySelector('.verification-badge');
-                                const pmBadge = pmCheckbox.parentElement.querySelector('.verification-badge');
+        async function loadVerificationStatuses() {
+            console.log('Loading verification statuses from Firestore');
+            const tabs = ['documentation', 'testPlan', 'testCases'];
+            for (const tabId of tabs) {
+                try {
+                    const docRef = doc(db, 'verifications', tabId);
+                    const docSnap = await getDoc(docRef);
+                    console.log(`Fetched data for ${tabId}:`, docSnap.data());
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        const qaLeadCheckbox = document.getElementById(`${tabId}-qa-lead`);
+                        const pmCheckbox = document.getElementById(`${tabId}-pm`);
+                        if (qaLeadCheckbox && pmCheckbox) {
+                            const qaLeadBadge = qaLeadCheckbox.parentElement.querySelector('.verification-badge');
+                            const pmBadge = pmCheckbox.parentElement.querySelector('.verification-badge');
+                            const qaLeadMessage = document.getElementById(`${tabId}-qa-lead-message`);
+                            const pmMessage = document.getElementById(`${tabId}-project-manager-message`);
 
-                                if (data.qaLead) {
-                                    checkboxStates[`${tabId}-qaLead`] = data.qaLead === 'Verified';
-                                    qaLeadCheckbox.checked = data.qaLead === 'Verified';
+                            if (data.qaLead) {
+                                checkboxStates[`${tabId}-qaLead`] = data.qaLead === 'Verified';
+                                qaLeadCheckbox.checked = data.qaLead === 'Verified';
+                                if (qaLeadBadge) {
                                     qaLeadBadge.textContent = data.qaLead;
                                     qaLeadBadge.style.backgroundColor = data.qaLead === 'Verified' ? '#4cc9f0' : 'var(--gray)';
                                 }
-                                if (data.projectManager) {
-                                    checkboxStates[`${tabId}-projectManager`] = data.projectManager === 'Verified';
-                                    pmCheckbox.checked = data.projectManager === 'Verified';
+                                if (qaLeadMessage) {
+                                    qaLeadMessage.style.display = data.qaLead === 'Verified' ? 'block' : 'none';
+                                    if (data.qaLead === 'Verified') {
+                                        qaLeadMessage.textContent = 'Verification successful!';
+                                        qaLeadMessage.className = 'message success';
+                                    }
+                                }
+                            }
+                            if (data.projectManager) {
+                                checkboxStates[`${tabId}-projectManager`] = data.projectManager === 'Verified';
+                                pmCheckbox.checked = data.projectManager === 'Verified';
+                                if (pmBadge) {
                                     pmBadge.textContent = data.projectManager;
                                     pmBadge.style.backgroundColor = data.projectManager === 'Verified' ? '#4cc9f0' : 'var(--gray)';
                                 }
+                                if (pmMessage) {
+                                    pmMessage.style.display = data.projectManager === 'Verified' ? 'block' : 'none';
+                                    if (data.projectManager === 'Verified') {
+                                        pmMessage.textContent = 'Verification successful!';
+                                        pmMessage.className = 'message success';
+                                    }
+                                }
                             }
-                        } else {
-                            await setDoc(doc(db, 'verifications', tabId), {
-                                qaLead: 'Pending',
-                                projectManager: 'Pending'
-                            });
                         }
-                    } catch (error) {
-                        console.error('Error loading verification statuses:', error);
+                    } else {
+                        await setDoc(doc(db, 'verifications', tabId), {
+                            qaLead: 'Pending',
+                            projectManager: 'Pending'
+                        });
+                        console.log(`Initialized ${tabId} with Pending status`);
                     }
+                } catch (error) {
+                    console.error('Error loading verification statuses for', tabId, ':', error);
                 }
-                updateProgress();
             }
-        });
+        }
     </script>
 
     <style>
