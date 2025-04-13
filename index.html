@@ -76,7 +76,7 @@
                     Verified by QA Lead
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="doc-qa-lead-message" class="message"></div>
+                <div id="documentation-qa-lead-message" class="message"></div>
             </div>
             <div class="checkbox-group">
                 <label>
@@ -84,7 +84,7 @@
                     Verified by Project Manager
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="doc-pm-message" class="message"></div>
+                <div id="documentation-project-manager-message" class="message"></div>
             </div>
         </div>
 
@@ -101,7 +101,7 @@
                     Verified by QA Lead
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="plan-qa-lead-message" class="message"></div>
+                <div id="testPlan-qa-lead-message" class="message"></div>
             </div>
             <div class="checkbox-group">
                 <label>
@@ -109,7 +109,7 @@
                     Verified by Project Manager
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="plan-pm-message" class="message"></div>
+                <div id="testPlan-project-manager-message" class="message"></div>
             </div>
         </div>
 
@@ -126,7 +126,7 @@
                     Verified by QA Lead
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="cases-qa-lead-message" class="message"></div>
+                <div id="testCases-qa-lead-message" class="message"></div>
             </div>
             <div class="checkbox-group">
                 <label>
@@ -134,7 +134,7 @@
                     Verified by Project Manager
                     <span class="verification-badge">Pending</span>
                 </label>
-                <div id="cases-pm-message" class="message"></div>
+                <div id="testCases-project-manager-message" class="message"></div>
             </div>
         </div>
     </div>
@@ -184,58 +184,74 @@
         };
 
         window.verifyCheckbox = async function(checkbox, tabId, role) {
-            console.log('verifyCheckbox called for', tabId, role); // Debug log
+            console.log('verifyCheckbox called for', tabId, role);
             const id = `${tabId}-${role}`;
-            const messageDiv = document.getElementById(`${tabId}-${role === 'qaLead' ? 'qa-lead' : 'pm'}-message`);
+            const messageDiv = document.getElementById(`${tabId}-${role === 'qaLead' ? 'qa-lead' : 'project-manager'}-message`);
+            if (!messageDiv) console.error(`Message div not found for id: ${tabId}-${role === 'qaLead' ? 'qa-lead' : 'project-manager'}-message`);
             const badge = checkbox.parentElement.querySelector('.verification-badge');
             const correctCode = 'QAJoyita';
 
             if (checkbox.checked) {
-                console.log('Checkbox checked, prompting for code'); // Debug log
+                console.log('Checkbox checked, prompting for code');
                 const userCode = prompt('Enter verification code:');
+                console.log('User entered:', userCode);
                 if (userCode === correctCode) {
-                    console.log('Correct code entered'); // Debug log
+                    console.log('Correct code entered, attempting Firestore update');
                     try {
                         const docRef = doc(db, 'verifications', tabId);
                         await setDoc(docRef, { [role]: 'Verified' }, { merge: true });
+                        console.log('Firestore update successful');
                         checkboxStates[id] = true;
-                        messageDiv.textContent = 'Verification successful!';
-                        messageDiv.className = 'message success';
-                        messageDiv.style.display = 'block';
-                        badge.textContent = 'Verified';
-                        badge.style.backgroundColor = '#4cc9f0';
+                        if (messageDiv) {
+                            messageDiv.textContent = 'Verification successful!';
+                            messageDiv.className = 'message success';
+                            messageDiv.style.display = 'block';
+                        }
+                        if (badge) {
+                            badge.textContent = 'Verified';
+                            badge.style.backgroundColor = '#4cc9f0';
+                        }
                         updateProgress();
                     } catch (error) {
-                        console.error('Error updating Firestore:', error);
+                        console.error('Error updating Firestore:', error.message, error);
                         checkbox.checked = false;
                         checkboxStates[id] = false;
-                        messageDiv.textContent = 'Failed to save. Try again.';
+                        if (messageDiv) {
+                            messageDiv.textContent = 'Failed to save. Check console for details.';
+                            messageDiv.className = 'message error';
+                            messageDiv.style.display = 'block';
+                        }
+                    }
+                } else {
+                    console.log('Incorrect code entered');
+                    checkbox.checked = false;
+                    checkboxStates[id] = false;
+                    if (messageDiv) {
+                        messageDiv.textContent = 'Incorrect code.';
                         messageDiv.className = 'message error';
                         messageDiv.style.display = 'block';
                     }
-                } else {
-                    console.log('Incorrect code entered'); // Debug log
-                    checkbox.checked = false;
-                    checkboxStates[id] = false;
-                    messageDiv.textContent = 'Incorrect code.';
-                    messageDiv.className = 'message error';
-                    messageDiv.style.display = 'block';
                 }
             } else {
-                console.log('Checkbox unchecked'); // Debug log
+                console.log('Checkbox unchecked');
                 try {
                     const docRef = doc(db, 'verifications', tabId);
                     await setDoc(docRef, { [role]: 'Pending' }, { merge: true });
+                    console.log('Firestore update to Pending successful');
                     checkboxStates[id] = false;
-                    messageDiv.style.display = 'none';
-                    badge.textContent = 'Pending';
-                    badge.style.backgroundColor = 'var(--gray)';
+                    if (messageDiv) messageDiv.style.display = 'none';
+                    if (badge) {
+                        badge.textContent = 'Pending';
+                        badge.style.backgroundColor = 'var(--gray)';
+                    }
                     updateProgress();
                 } catch (error) {
-                    console.error('Error updating Firestore:', error);
-                    messageDiv.textContent = 'Failed to update. Try again.';
-                    messageDiv.className = 'message error';
-                    messageDiv.style.display = 'block';
+                    console.error('Error updating Firestore to Pending:', error.message, error);
+                    if (messageDiv) {
+                        messageDiv.textContent = 'Failed to update. Check console for details.';
+                        messageDiv.className = 'message error';
+                        messageDiv.style.display = 'block';
+                    }
                 }
             }
         };
